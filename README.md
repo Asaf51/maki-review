@@ -4,7 +4,7 @@ A [[maki](https://github.com/asaf/maki)](https://github.com/tontinton/maki) plug
 a TUI for reviewing maki's changes, leaving inline comments on diff lines,
 and sending them back to a new maki session that fixes them.
 
-<img width="800" height="500" alt="recording2" src="https://github.com/user-attachments/assets/a65e2e8e-54d4-498a-b775-b1444944a798" />
+<img width="800" height="500" alt="recording2" src="https://github.com/user-attachments/assets/b84fb2dd-e995-4060-b15d-159d34f5d23a" />
 
 ## Features
 
