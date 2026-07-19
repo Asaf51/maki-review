@@ -486,6 +486,24 @@ local function display_len(s)
   return #s
 end
 
+local function sanitize_utf8(s)
+  if not s or s == "" then return s end
+  local ok = pcall(utf8.len, s)
+  if ok then return s end
+  -- Extract valid UTF-8 characters, skip invalid bytes
+  local out, i, n = {}, 1, #s
+  while i <= n do
+    local ok, next = pcall(utf8.offset, s, 1, i)
+    if ok then
+      out[#out + 1] = s:sub(i, next - 1)
+      i = next
+    else
+      i = i + 1
+    end
+  end
+  return table.concat(out)
+end
+
 local function spans_len(spans)
   local n = 0
   for _, sp in ipairs(spans) do
@@ -705,14 +723,22 @@ local function render_commit_list(state)
     lines[#lines + 1] = { { "  No commits.", "dim" } }
   end
   for i, cm in ipairs(state.commits) do
-    local when = (cm.when or ""):gsub(" ago$", "")
-    local avail = width - #cm.sha - display_len(when) - 4
-    local subject = cm.subject
+    local sha = sanitize_utf8(cm.sha or "")
+    local when = sanitize_utf8(cm.when or ""):gsub(" ago$", "")
+    local subject = sanitize_utf8(cm.subject or "")
+    local avail = width - #sha - display_len(when) - 4
     if display_len(subject) > avail then
-      subject = subject:sub(1, math.max(avail - 1, 1)) .. "…"
+      local cut = math.max(avail - 1, 1)
+      -- Ensure `cut` lands on a UTF-8 boundary
+      while cut > 0 do
+        local ok, pos = pcall(utf8.offset, subject, 0, cut + 1)
+        if ok and pos == cut + 1 then break end
+        cut = cut - 1
+      end
+      subject = subject:sub(1, cut) .. "…"
     end
     local spans = {
-      { " " .. cm.sha .. " ", "accent" },
+      { " " .. sha .. " ", "accent" },
       { subject, "item" },
     }
     pad_spans(spans, width - display_len(when) - 1)
@@ -724,7 +750,7 @@ local function render_commit_list(state)
         lines[#lines] = pad_spans(restyle(spans, "selected"), width, "selected")
       else
         local marked = restyle(spans, "active")
-        marked[1] = { "▎" .. cm.sha .. " ", "accent" }
+        marked[1] = { "▎" .. sha .. " ", "accent" }
         lines[#lines] = marked
       end
     end
